@@ -4352,21 +4352,21 @@ load_replication() {
 
     [ -f "$REPLICATION_FILE" ] || return 0
 
-    while IFS='|' read -r host port label enabled last_sync status; do
-        [[ "$host" =~ ^[[:space:]]*# ]] && continue
-        [[ "$host" =~ ^[[:space:]]*$ ]] && continue
-        [[ "$host" =~ ^[a-zA-Z0-9._-]+$ ]] || continue
-        [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1 ] && [ "$port" -le 65535 ] || port=22
-        [ "$enabled" = "false" ] || enabled="true"
-        [[ "$last_sync" =~ ^[0-9]+$ ]] || last_sync=0
-        [[ "$status" =~ ^(ok|error|unknown)$ ]] || status="unknown"
+    while IFS='|' read -r _rl_h _rl_p _rl_l _rl_e _rl_ls _rl_st; do
+        [[ "$_rl_h" =~ ^[[:space:]]*# ]] && continue
+        [[ "$_rl_h" =~ ^[[:space:]]*$ ]] && continue
+        [[ "$_rl_h" =~ ^[a-zA-Z0-9._-]+$ ]] || continue
+        [[ "$_rl_p" =~ ^[0-9]+$ ]] && [ "$_rl_p" -ge 1 ] && [ "$_rl_p" -le 65535 ] || _rl_p=22
+        [ "$_rl_e" = "false" ] || _rl_e="true"
+        [[ "$_rl_ls" =~ ^[0-9]+$ ]] || _rl_ls=0
+        [[ "$_rl_st" =~ ^(ok|error|unknown)$ ]] || _rl_st="unknown"
 
-        REPL_HOSTS+=("$host")
-        REPL_PORTS+=("$port")
-        REPL_LABELS+=("${label:-$host}")
-        REPL_ENABLED+=("$enabled")
-        REPL_LAST_SYNC+=("$last_sync")
-        REPL_STATUS+=("$status")
+        REPL_HOSTS+=("$_rl_h")
+        REPL_PORTS+=("$_rl_p")
+        REPL_LABELS+=("${_rl_l:-$_rl_h}")
+        REPL_ENABLED+=("$_rl_e")
+        REPL_LAST_SYNC+=("$_rl_ls")
+        REPL_STATUS+=("$_rl_st")
     done < "$REPLICATION_FILE"
 }
 
