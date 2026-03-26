@@ -4595,6 +4595,8 @@ do_sync() {
         ex="${ex#"${ex%%[! ]*}"}"  # ltrim spaces
         [ -n "$ex" ] && exclude_args+=(--exclude="${ex}")
     done
+    # Always exclude these critical files — must never be overwritten on slave
+    exclude_args+=(--exclude="settings.conf" --exclude="replication.conf")
 
     local output rc
     output=$(rsync -az --delete --itemize-changes "${exclude_args[@]}" \
@@ -4913,7 +4915,8 @@ replication_status() {
 
     local t_state="inactive"
     if command -v systemctl &>/dev/null; then
-        t_state=$(systemctl is-active mtproxymax-sync.timer 2>/dev/null || echo "inactive")
+        t_state=$(systemctl is-active mtproxymax-sync.timer 2>/dev/null)
+        t_state="${t_state:-inactive}"
         echo -e "  Timer:    $([ "$t_state" = "active" ] && echo "${GREEN}${t_state}${NC}" || echo "${DIM}${t_state}${NC}")"
     fi
 
