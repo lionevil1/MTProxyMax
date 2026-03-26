@@ -4933,7 +4933,8 @@ replication_status() {
 
     echo -e "  Role:     ${role_color}${REPLICATION_ROLE}${NC}"
     echo -e "  Enabled:  $([ "$REPLICATION_ENABLED" = "true" ] && echo "${GREEN}yes${NC}" || echo "${DIM}no${NC}")"
-    echo -e "  Interval: ${REPLICATION_SYNC_INTERVAL}s"
+    [ "${REPLICATION_ROLE}" = "master" ] && \
+        echo -e "  Interval: ${REPLICATION_SYNC_INTERVAL}s"
     echo -e "  SSH Key:  $([ -f "${REPLICATION_SSH_KEY_PATH}" ] && echo "${GREEN}present${NC}" || echo "${RED}missing${NC}")"
 
     local t_state="inactive"
@@ -8218,7 +8219,11 @@ show_replication_menu() {
         fi
 
         echo -e "  Role:   ${role_color}${REPLICATION_ROLE}${NC}   Enabled: $([ "$REPLICATION_ENABLED" = "true" ] && echo "${GREEN}yes${NC}" || echo "${DIM}no${NC}")   Timer: $([ "$timer_state" = "active" ] && echo "${GREEN}active${NC}" || echo "${DIM}${timer_state}${NC}")"
-        echo -e "  Slaves: ${#REPL_HOSTS[@]} configured   Interval: ${REPLICATION_SYNC_INTERVAL}s"
+        if [ "${REPLICATION_ROLE}" = "master" ]; then
+            echo -e "  Slaves: ${#REPL_HOSTS[@]} configured   Interval: ${REPLICATION_SYNC_INTERVAL}s"
+        else
+            echo -e "  Receiving config from master"
+        fi
         echo ""
         draw_line
         echo ""
