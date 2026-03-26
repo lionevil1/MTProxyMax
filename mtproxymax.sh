@@ -676,6 +676,9 @@ load_settings() {
     [[ "$REPLICATION_SSH_PORT" =~ ^[0-9]+$ ]] && [ "$REPLICATION_SSH_PORT" -ge 1 ] && [ "$REPLICATION_SSH_PORT" -le 65535 ] || REPLICATION_SSH_PORT=22
     [[ "$REPLICATION_ENABLED" == "true" ]] || REPLICATION_ENABLED="false"
     [[ "$REPLICATION_RESTART_ON_CHANGE" == "false" ]] || REPLICATION_RESTART_ON_CHANGE="true"
+    # Migration: ensure settings.conf and replication.conf are always excluded
+    [[ "$REPLICATION_EXCLUDE" == *"settings.conf"* ]]   || REPLICATION_EXCLUDE="${REPLICATION_EXCLUDE},settings.conf"
+    [[ "$REPLICATION_EXCLUDE" == *"replication.conf"* ]] || REPLICATION_EXCLUDE="${REPLICATION_EXCLUDE},replication.conf"
 }
 
 # Save secrets database
@@ -4532,6 +4535,9 @@ load_sync_settings() {
             esac
         fi
     done < "$SETTINGS_FILE"
+    # Migration: ensure these files are never synced regardless of stored value
+    [[ "$REPLICATION_EXCLUDE" == *"settings.conf"* ]]   || REPLICATION_EXCLUDE="${REPLICATION_EXCLUDE},settings.conf"
+    [[ "$REPLICATION_EXCLUDE" == *"replication.conf"* ]] || REPLICATION_EXCLUDE="${REPLICATION_EXCLUDE},replication.conf"
 }
 
 declare -a REPL_HOSTS=()
