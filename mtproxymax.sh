@@ -4341,7 +4341,11 @@ save_replication() {
     } > "$tmp"
 
     chmod 600 "$tmp"
+    # Serialise with sync-timer flock to prevent lost-update races with save_sync_status()
+    exec 201>"/var/lock/mtproxymax-sync.lock"
+    flock -w 5 201 2>/dev/null
     mv "$tmp" "$REPLICATION_FILE"
+    exec 201>&-
 }
 
 # Load replication.conf
@@ -4376,6 +4380,12 @@ load_replication() {
 # Add a slave server
 replication_add() {
     local host="${1:-}" port="${2:-22}" label="${3:-}"
+
+    if [ "${REPLICATION_ROLE}" = "slave" ]; then
+        log_error "This server is a slave — only a master can register peers"
+        log_info "Run: mtproxymax replication setup  to change role"
+        return 1
+    fi
 
     if [ -z "$host" ]; then
         log_error "Usage: replication add <host> [port] [label]"
@@ -4417,6 +4427,11 @@ replication_add() {
 # Remove slave by host or label
 replication_remove() {
     local target="${1:-}"
+
+    if [ "${REPLICATION_ROLE}" = "slave" ]; then
+        log_error "This server is a slave — only a master manages the slave list"
+        return 1
+    fi
 
     if [ -z "$target" ]; then
         log_error "Usage: replication remove <host_or_label>"
@@ -4555,11 +4570,14 @@ load_sync_replication() {
         [[ "$host" =~ ^[[:space:]]*# ]] && continue
         [[ "$host" =~ ^[[:space:]]*$ ]] && continue
         [[ "$host" =~ ^[a-zA-Z0-9._-]+$ ]] || continue
+        [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1 ] && [ "$port" -le 65535 ] || port=22
+        [ "$enabled" = "false" ] || enabled="true"
+        [[ "$last_sync" =~ ^[0-9]+$ ]] || last_sync=0
         REPL_HOSTS+=("$host")
-        REPL_PORTS+=("${port:-22}")
+        REPL_PORTS+=("$port")
         REPL_LABELS+=("${label:-$host}")
-        REPL_ENABLED+=("${enabled:-true}")
-        REPL_LAST_SYNC+=("${last_sync:-0}")
+        REPL_ENABLED+=("$enabled")
+        REPL_LAST_SYNC+=("$last_sync")
         REPL_STATUS+=("${status:-unknown}")
     done < "$REPLICATION_FILE"
 }
@@ -4735,6 +4753,7 @@ remove_replication_service() {
 
 # Interactive setup wizard
 replication_setup_wizard() {
+    load_settings
     clear_screen
     draw_header "REPLICATION SETUP"
     echo ""
@@ -4981,6 +5000,11 @@ replication_test() {
 # Trigger immediate sync
 replication_sync_now() {
     echo ""
+    if [ "${REPLICATION_ROLE}" != "master" ]; then
+        log_warn "This server is '${REPLICATION_ROLE}' — only master initiates sync"
+        echo ""
+        return 1
+    fi
     # Always regenerate sync script to ensure it reflects the current version
     replication_generate_sync_script
     if command -v systemctl &>/dev/null && \
