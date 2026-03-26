@@ -6507,7 +6507,6 @@ cli_main() {
 
         replication)
             load_settings
-            shift
             case "${1:-status}" in
                 setup)   check_root; replication_setup_wizard ;;
                 status|"") replication_status ;;
