@@ -4758,6 +4758,9 @@ replication_setup_wizard() {
             REPLICATION_ROLE="slave"
             REPLICATION_ENABLED="false"
             save_settings
+            stop_replication_service
+            # Slave has no peers — clear any stale replication.conf from a previous master setup
+            > "${REPLICATION_FILE}" 2>/dev/null || true
             echo ""
             log_success "Role set to: Slave"
             echo ""
@@ -8185,8 +8188,10 @@ show_replication_menu() {
         esac
 
         local timer_state="inactive"
-        command -v systemctl &>/dev/null && \
-            timer_state=$(systemctl is-active mtproxymax-sync.timer 2>/dev/null || echo "inactive")
+        if command -v systemctl &>/dev/null; then
+            timer_state=$(systemctl is-active mtproxymax-sync.timer 2>/dev/null)
+            timer_state="${timer_state:-inactive}"
+        fi
 
         echo -e "  Role:   ${role_color}${REPLICATION_ROLE}${NC}   Enabled: $([ "$REPLICATION_ENABLED" = "true" ] && echo "${GREEN}yes${NC}" || echo "${DIM}no${NC}")   Timer: $([ "$timer_state" = "active" ] && echo "${GREEN}active${NC}" || echo "${DIM}${timer_state}${NC}")"
         echo -e "  Slaves: ${#REPL_HOSTS[@]} configured   Interval: ${REPLICATION_SYNC_INTERVAL}s"
