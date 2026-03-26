@@ -130,7 +130,7 @@ REPLICATION_ROLE="standalone"
 REPLICATION_SYNC_INTERVAL=60
 REPLICATION_SSH_PORT=22
 REPLICATION_SSH_KEY_PATH="/opt/mtproxymax/.ssh/id_ed25519"
-REPLICATION_EXCLUDE="relay_stats,backups,connection.log,.ssh,mtproxymax-telegram.sh,mtproxymax-sync.sh"
+REPLICATION_EXCLUDE="relay_stats,backups,connection.log,.ssh,replication.conf,mtproxymax-telegram.sh,mtproxymax-sync.sh"
 REPLICATION_RESTART_ON_CHANGE="true"
 REPLICATION_LOG="/var/log/mtproxymax-sync.log"
 
@@ -4513,7 +4513,7 @@ REPLICATION_ENABLED="false"
 REPLICATION_ROLE="standalone"
 REPLICATION_SSH_KEY_PATH="/opt/mtproxymax/.ssh/id_ed25519"
 REPLICATION_SSH_PORT="22"
-REPLICATION_EXCLUDE="relay_stats,backups,connection.log,.ssh,mtproxymax-telegram.sh,mtproxymax-sync.sh"
+REPLICATION_EXCLUDE="relay_stats,backups,connection.log,.ssh,replication.conf,mtproxymax-telegram.sh,mtproxymax-sync.sh"
 REPLICATION_RESTART_ON_CHANGE="true"
 REPLICATION_LOG="/var/log/mtproxymax-sync.log"
 
@@ -4905,10 +4905,18 @@ replication_status() {
     echo -e "  Interval: ${REPLICATION_SYNC_INTERVAL}s"
     echo -e "  SSH Key:  $([ -f "${REPLICATION_SSH_KEY_PATH}" ] && echo "${GREEN}present${NC}" || echo "${RED}missing${NC}")"
 
+    local t_state="inactive"
     if command -v systemctl &>/dev/null; then
-        local t_state
         t_state=$(systemctl is-active mtproxymax-sync.timer 2>/dev/null || echo "inactive")
         echo -e "  Timer:    $([ "$t_state" = "active" ] && echo "${GREEN}${t_state}${NC}" || echo "${DIM}${t_state}${NC}")"
+    fi
+
+    # Warn if settings look like they were synced from master (role=master but timer not running)
+    if [ "${REPLICATION_ROLE}" = "master" ] && [ "$t_state" != "active" ] && [ "$REPLICATION_ENABLED" = "true" ]; then
+        echo ""
+        echo -e "  ${YELLOW}[!]${NC} ${DIM}Settings synced from master — timer not running on this server.${NC}"
+        echo -e "  ${DIM}    If this is a slave, replication is working correctly (receive-only).${NC}"
+        echo -e "  ${DIM}    Run 'mtproxymax replication setup' to configure this server as master.${NC}"
     fi
 
     if [ "${REPLICATION_ROLE}" = "master" ] && [ ${#REPL_HOSTS[@]} -gt 0 ]; then
