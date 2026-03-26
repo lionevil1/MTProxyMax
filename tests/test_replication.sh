@@ -7,22 +7,6 @@
 #  Requirements: bash 4.2+, mktemp, mv, chmod  (no Docker, SSH, systemd)
 #  Run: bash tests/test_replication.sh
 #
-# ── KNOWN PRODUCTION BUG (tests 2.14, 2.15, 3.3, 3.4, 3.6, 6.5) ──────────
-#  Root cause: bash uses dynamic (not lexical) scoping for local variables.
-#  Inside replication_add, the call to load_replication runs a
-#  `while IFS='|' read -r host port label ...` loop. Because `host` is also
-#  a local in the calling frame (replication_add), the while-read loop
-#  clobbers it. After load_replication returns, `host` in replication_add is
-#  empty (the last `read` returned EOF). Every entry is therefore saved with
-#  an empty host string, which is then rejected on the next load_replication
-#  call (fails the `^[a-zA-Z0-9._-]+$` regex), making the registry appear
-#  permanently empty.
-#
-#  Fix: rename the while-read variables inside load_replication to names that
-#  won't clash with callers (e.g. _rl_host, _rl_port, _rl_label, ...).
-#
-#  These tests document the INTENDED behaviour. They will pass once the fix
-#  is applied, and serve as the regression anchor for that fix.
 # ─────────────────────────────────────────────────────────────────────────────
 # Do NOT use set -e here: tests intentionally call functions that return non-zero
 # exit codes and must capture $? before the next statement.
@@ -170,21 +154,21 @@ load_replication() {
 
     [ -f "$REPLICATION_FILE" ] || return 0
 
-    while IFS='|' read -r host port label enabled last_sync status; do
-        [[ "$host" =~ ^[[:space:]]*# ]] && continue
-        [[ "$host" =~ ^[[:space:]]*$ ]] && continue
-        [[ "$host" =~ ^[a-zA-Z0-9._-]+$ ]] || continue
-        [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1 ] && [ "$port" -le 65535 ] || port=22
-        [ "$enabled" = "false" ] || enabled="true"
-        [[ "$last_sync" =~ ^[0-9]+$ ]] || last_sync=0
-        [[ "$status" =~ ^(ok|error|unknown)$ ]] || status="unknown"
+    while IFS='|' read -r _rl_h _rl_p _rl_l _rl_e _rl_ls _rl_st; do
+        [[ "$_rl_h" =~ ^[[:space:]]*# ]] && continue
+        [[ "$_rl_h" =~ ^[[:space:]]*$ ]] && continue
+        [[ "$_rl_h" =~ ^[a-zA-Z0-9._-]+$ ]] || continue
+        [[ "$_rl_p" =~ ^[0-9]+$ ]] && [ "$_rl_p" -ge 1 ] && [ "$_rl_p" -le 65535 ] || _rl_p=22
+        [ "$_rl_e" = "false" ] || _rl_e="true"
+        [[ "$_rl_ls" =~ ^[0-9]+$ ]] || _rl_ls=0
+        [[ "$_rl_st" =~ ^(ok|error|unknown)$ ]] || _rl_st="unknown"
 
-        REPL_HOSTS+=("$host")
-        REPL_PORTS+=("$port")
-        REPL_LABELS+=("${label:-$host}")
-        REPL_ENABLED+=("$enabled")
-        REPL_LAST_SYNC+=("$last_sync")
-        REPL_STATUS+=("$status")
+        REPL_HOSTS+=("$_rl_h")
+        REPL_PORTS+=("$_rl_p")
+        REPL_LABELS+=("${_rl_l:-$_rl_h}")
+        REPL_ENABLED+=("$_rl_e")
+        REPL_LAST_SYNC+=("$_rl_ls")
+        REPL_STATUS+=("$_rl_st")
     done < "$REPLICATION_FILE"
 }
 

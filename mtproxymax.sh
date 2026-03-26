@@ -4874,6 +4874,7 @@ replication_setup_wizard() {
             ex="${ex#"${ex%%[! ]*}"}"
             [ -n "$ex" ] && exclude_args+=(--exclude="${ex}")
         done
+        exclude_args+=(--exclude="settings.conf" --exclude="replication.conf")
         rsync -az --dry-run --itemize-changes "${exclude_args[@]}" \
             --timeout=10 \
             -e "ssh -i ${REPLICATION_SSH_KEY_PATH} -p ${REPL_PORTS[0]} -o BatchMode=yes -o StrictHostKeyChecking=accept-new" \
@@ -4977,6 +4978,8 @@ replication_test() {
 # Trigger immediate sync
 replication_sync_now() {
     echo ""
+    # Always regenerate sync script to ensure it reflects the current version
+    replication_generate_sync_script
     if command -v systemctl &>/dev/null && \
         systemctl is-active mtproxymax-sync.timer &>/dev/null; then
         echo -e "  Triggering sync via systemd..."
