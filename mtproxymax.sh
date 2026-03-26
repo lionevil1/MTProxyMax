@@ -4728,7 +4728,7 @@ remove_replication_service() {
 # Interactive setup wizard
 replication_setup_wizard() {
     clear_screen
-    draw_header "HA REPLICATION SETUP"
+    draw_header "REPLICATION SETUP"
     echo ""
     echo -e "  Configures Master-Slave config sync via rsync+SSH."
     echo -e "  Changes on the ${BOLD}Master${NC} auto-push to all Slaves."
@@ -4879,7 +4879,7 @@ replication_setup_wizard() {
     setup_replication_service
 
     echo ""
-    log_success "HA Replication configured!"
+    log_success "Replication configured!"
     echo -e "  Role: ${BRIGHT_GREEN}Master${NC} | Interval: ${REPLICATION_SYNC_INTERVAL}s | Slaves: ${#REPL_HOSTS[@]}"
     echo ""
     press_any_key
@@ -6839,7 +6839,7 @@ show_main_menu() {
         draw_box_line "  ${BRIGHT_CYAN}[7]${NC}  Logs & Traffic" "$w"
         draw_box_line "  ${BRIGHT_CYAN}[8]${NC}  Info & Help" "$w"
         draw_box_line "  ${BRIGHT_CYAN}[9]${NC}  About & Update" "$w"
-        draw_box_line "  ${BRIGHT_CYAN}[r]${NC}  HA Replication" "$w"
+        draw_box_line "  ${BRIGHT_CYAN}[r]${NC}  Replication" "$w"
         draw_box_empty "$w"
         draw_box_line "  ${BRIGHT_RED}[u]${NC}  Uninstall" "$w"
         draw_box_line "  ${BRIGHT_CYAN}[0]${NC}  Exit" "$w"
@@ -8127,7 +8127,7 @@ show_about() {
         draw_box_line "  ${GREEN}${SYM_CHECK}${NC} Per-user traffic analytics (Prometheus)" "$w"
         draw_box_line "  ${GREEN}${SYM_CHECK}${NC} Auto-update with backup & rollback" "$w"
         draw_box_line "  ${GREEN}${SYM_CHECK}${NC} Health monitoring & auto-recovery" "$w"
-        draw_box_line "  ${GREEN}${SYM_CHECK}${NC} HA replication (master-slave config sync)" "$w"
+        draw_box_line "  ${GREEN}${SYM_CHECK}${NC} Replication (master-slave config sync)" "$w"
         draw_box_empty "$w"
         draw_box_sep "$w"
         draw_box_center "${DIM}Made with care by Sam — SamNet Technologies${NC}" "$w"
@@ -8161,7 +8161,7 @@ show_about() {
 show_replication_menu() {
     while true; do
         clear_screen
-        draw_header "HA REPLICATION"
+        draw_header "REPLICATION"
         echo ""
         load_settings
         load_replication
